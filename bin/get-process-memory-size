@@ -1,0 +1,36 @@
+#!/bin/bash
+
+_process="$1"
+_type="$2"
+_ps="ps aux"
+
+if [ -z "$_process" ]
+then
+    echo 0
+    exit 0
+fi
+
+
+_process_current=$$
+_process_target=$($_ps|grep -v grep|grep "$_process"|grep -v "$_process_current"|tr -s ' '|head -n 1)
+if [ -z "$_process_target" ]
+then
+    echo 0
+    exit 0
+fi
+
+
+if [ "$_type" = "virtual-memory" -o "$_type" = "vmem" ]
+then
+    _target=$(echo "$_process_target"|cut -d ' ' -f 5)
+elif [ "$_type" = "physical-memory" -o "$_type" = "pmem" ]
+then
+    _target=$(echo "$_process_target"|cut -d ' ' -f 6)
+fi
+
+# KB to B
+((_target = _target * 1024))
+
+echo $_target
+exit 0
+
