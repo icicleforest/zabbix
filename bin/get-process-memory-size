@@ -2,7 +2,6 @@
 
 _process="$1"
 _type="$2"
-_ps="ps aux"
 
 if [ -z "$_process" ]
 then
@@ -11,22 +10,41 @@ then
 fi
 
 
-_process_current=$$
-_process_target=$($_ps|grep -v grep|grep "$_process"|grep -v "$_process_current"|tr -s ' '|head -n 1)
-if [ -z "$_process_target" ]
-then
-    echo 0
-    exit 0
-fi
+_pid_parent=$PPID
+_pid_current=$$
+_processes_candidate=$(ps -ef|tr -s ' '|grep "$_process"|grep -v grep|cut -d ' ' -f 1-3)
+
+_pids_target=$(
+echo "$_processes_candidate" | while read _line
+do
+    _result=$(echo "$_line"|grep -v "$_pid_parent"|grep -v "$_pid_current" 2>/dev/null)
+    _return=$?
+
+    if ((_return == 0))
+    then
+        echo $_result|cut -d ' ' -f 2
+    fi
+done
+)
 
 
-if [ "$_type" = "virtual-memory" -o "$_type" = "vmem" ]
-then
-    _target=$(echo "$_process_target"|cut -d ' ' -f 5)
-elif [ "$_type" = "physical-memory" -o "$_type" = "pmem" ]
-then
-    _target=$(echo "$_process_target"|cut -d ' ' -f 6)
-fi
+_target=0
+for _pid in $_pids_target
+do
+    _process_target=$(ps aux|grep -v grep|egrep "\s$_pid\s"|tr -s ' '|head -n 1)
+
+    if [ "$_type" = "virtual-memory" -o "$_type" = "vmem" ]
+    then
+        _d=$(echo "$_process_target"|cut -d ' ' -f 5)
+    elif [ "$_type" = "physical-memory" -o "$_type" = "pmem" ]
+    then
+        _d=$(echo "$_process_target"|cut -d ' ' -f 6)
+    else
+        _d=0
+    fi
+
+    ((_target = _target + _d))
+done
 
 # KB to B
 ((_target = _target * 1024))
