@@ -1,0 +1,24 @@
+#!/bin/sh
+
+
+_dir_queue=$(/usr/sbin/postconf -h queue_directory)
+_type_queue="$1"
+
+
+case "$_type_queue" in
+    "incoming" | "active" | "maildrop" | "deferred" | "bounce" )
+        _num_messages=$(sudo /bin/find $_dir_queue/$1/ -type f -print 2>/dev/null|wc -l)
+        ;;
+
+    "all")
+        _num_messages=$(sudo /bin/find $_dir_queue/{incoming,active,maildrop,deferred,bounce}/ -type -f -print 2>/dev/null|wc -l)
+        ;;
+
+    * )
+        _num_messages=0
+        ;;
+esac
+
+
+echo $_num_messages
+exit 0
